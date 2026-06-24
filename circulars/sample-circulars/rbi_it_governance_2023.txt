@@ -1,0 +1,15 @@
+RESERVE BANK OF INDIA
+Master Direction on Information Technology Governance, Risk, Controls and Assurance Practices
+Ref: RBI/2023-24/107
+Date: November 7, 2023
+
+Subject: IT Governance and Cyber Security Controls
+
+All Commercial Banks, NBFCs, and Credit Information Companies are directed to implement the following:
+1. Establish a Board-level IT Strategy Committee to oversee IT governance.
+2. Ensure strict physical and environmental controls for Data Centres and Disaster Recovery sites.
+3. Implement robust Identity & Access Management (IAM) and privileged access controls.
+4. Adopt internationally accepted cryptographic standards for data in transit and at rest.
+5. All critical third-party IT vendor risks must be periodically assessed.
+
+Deadline for compliance: April 1, 2024.

@@ -1,0 +1,2 @@
+Log Retention Policy v2.0
+All system logs are now configured to be retained for 180 days on the central SIEM server located in the Mumbai Data Center, fully compliant with CERT-In 2022 directives.

@@ -1,0 +1,13 @@
+INDIAN COMPUTER EMERGENCY RESPONSE TEAM (CERT-In)
+Ref: CERT-In Directions under Section 70B
+Date: April 28, 2022
+
+Subject: Mandatory Cyber Incident Reporting and Vulnerability Management
+
+To all Service Providers, Intermediaries, Data Centres, and Corporate Entities:
+1. All severe cyber incidents (ransomware, data breaches) must be reported to CERT-In within 6 hours of noticing.
+2. Entities must synchronize their IT system clocks to the NTP servers of NIC or NPL.
+3. Maintain secure logs of all IT systems for a rolling period of 180 days within Indian jurisdiction.
+4. Conduct vulnerability assessment and penetration testing (VAPT) at least once a year.
+
+Deadline for immediate compliance with 6-hour reporting.

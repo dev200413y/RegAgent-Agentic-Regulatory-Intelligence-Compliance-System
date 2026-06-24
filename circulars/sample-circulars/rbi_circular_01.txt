@@ -1,0 +1,12 @@
+RESERVE BANK OF INDIA
+Ref: RBI/2026-27/42
+Date: June 19, 2026
+
+Subject: Mandatory Update to KYC Re-verification Process
+
+In view of recent cybersecurity incidents, all regulated entities are directed to implement the following measures:
+1. All flagged accounts must undergo full KYC re-verification.
+2. Implement a secondary biometric authentication system.
+3. Banks must ensure strict compliance with data localization norms.
+
+Deadline for compliance: August 15, 2026.

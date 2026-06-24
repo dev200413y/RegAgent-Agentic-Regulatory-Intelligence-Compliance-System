@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+sqlalchemy
+pydantic
+langgraph
+langchain
+langchain-community
+pymupdf
+watchdog
+python-multipart
