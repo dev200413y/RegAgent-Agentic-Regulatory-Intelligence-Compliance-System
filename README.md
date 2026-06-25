@@ -25,10 +25,12 @@ RegAgent is a **multi-agent AI system** built on LangGraph that takes a regulato
 
 1. **Ingests** the circular (upload or folder-drop)
 2. **Parses** it to extract obligations, deadlines, and affected functions
-3. **Generates Measurable Action Points (MAPs)** — not vague to-dos, but structured tasks with KPIs, deadlines, and owners
+3. **Generates Measurable Action Points (MAPs)** — not vague to-dos, but structured tasks with KPIs, deadlines, owners, and **5 critical business dimensions**: Assignee Role, Estimated Effort, Risk Category, Regulatory Fine Potential, and Budget Required.
 4. **Assigns** each MAP to the correct bank department (Risk, Legal, IT, Operations)
 5. **Validates** completion by checking submitted evidence against the MAP's criteria — autonomously, without manual sign-off for routine cases
 6. **Logs everything** in an audit trail that is regulator-ready
+
+The system features a **state-of-the-art Glassmorphism Dark Mode UI** that includes a Live Agentic Pipeline Visualizer, a MAP Kanban Board, a Live Penalty Exposure Ticker, and an AI Chat Copilot to query regulations on the fly.
 
 The result: what used to take **3–7 days of manual work** now takes **under 5 minutes per circular**, with a complete, defensible audit trail.
 
@@ -99,8 +101,8 @@ docker-compose up --build
 # 3. Confirm Ollama is serving locally
 ollama list
 
-# 4. Open the dashboard
-http://localhost:3000
+# 4. Open the dashboard (running on Vite locally)
+http://localhost:5173
 
 # 5. Drop a circular into the watched folder, or upload via the dashboard
 cp sample-circulars/rbi_circular_01.pdf ./circulars/incoming/

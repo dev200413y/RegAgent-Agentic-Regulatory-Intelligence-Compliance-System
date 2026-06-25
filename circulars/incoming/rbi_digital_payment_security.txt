@@ -1,0 +1,13 @@
+RESERVE BANK OF INDIA
+Master Direction on Digital Payment Security Controls
+Ref: RBI/2020-21/74
+
+Subject: Enhancing Security of Digital Payment Channels
+
+Applicable to Scheduled Commercial Banks, Small Finance Banks, and Payment Banks:
+1. Implement Multi-Factor Authentication (MFA) for all digital payment transactions.
+2. Put in place mechanisms to detect and block suspicious transactions based on velocity and behavioral patterns.
+3. Secure the APIs used for Open Banking and Fintech integrations with rate limiting and mutual TLS authentication.
+4. Establish a dedicated Security Operations Center (SOC) for 24x7 threat monitoring.
+
+Entities must comply with these guidelines to ensure safety of consumer funds.

@@ -13,7 +13,12 @@ Return a valid JSON object ONLY (no markdown, no backticks). Format:
 {{
   "title": "Specific, actionable task (e.g., Update IT Steering Committee Charter to include Chapter II)",
   "kpi": "Measurable criteria (e.g., 100% of board members signed off)",
-  "evidence_required": "Exact document name needed (e.g., Board Resolution Document)"
+  "evidence_required": "Exact document name needed (e.g., Board Resolution Document)",
+  "assignee_role": "Specific role (e.g. Chief Risk Officer)",
+  "estimated_effort_hours": "Estimated hours (e.g. 20)",
+  "risk_category": "One of: Operational, Financial, Reputational, IT",
+  "regulatory_fine_potential": "Estimated fine or High/Medium/Low",
+  "budget_required": "Yes/No"
 }}
 """
 
@@ -28,7 +33,12 @@ def clean_json_response(response: str) -> dict:
     return {
         "title": f"Review Obligation: {response[:30]}...",
         "kpi": "Detailed Review Completed",
-        "evidence_required": "Specific System Log / Policy Update"
+        "evidence_required": "Specific System Log / Policy Update",
+        "assignee_role": "Compliance Team",
+        "estimated_effort_hours": "TBD",
+        "risk_category": "Operational",
+        "regulatory_fine_potential": "Unknown",
+        "budget_required": "TBD"
     }
 
 def map_generator_node(state: dict) -> dict:
