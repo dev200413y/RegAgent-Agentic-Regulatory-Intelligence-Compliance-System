@@ -10,11 +10,34 @@ from db.database import engine, get_db
 from db import models
 from agents.workflow import app as langgraph_app
 from agents.validator_agent import validate_evidence
+from fastapi.staticfiles import StaticFiles
 
 # Create database tables
 models.Base.metadata.create_all(bind=engine)
 
+def seed_employees():
+    db = next(get_db())
+    if db.query(models.Employee).count() == 0:
+        print("Seeding default employees...")
+        defaults = [
+            models.Employee(name="Chief Information Security Officer (CISO)", department="IT", level="Head", email="ciso@bank.local"),
+            models.Employee(name="Chief Risk Officer (CRO)", department="Risk", level="Head", email="cro@bank.local"),
+            models.Employee(name="Chief Compliance Officer (CCO)", department="Compliance", level="Head", email="cco@bank.local"),
+            models.Employee(name="Head of Legal", department="Legal", level="Head", email="legal@bank.local"),
+            models.Employee(name="Head of Operations", department="Operations", level="Head", email="ops@bank.local")
+        ]
+        db.add_all(defaults)
+        db.commit()
+    db.close()
+
+seed_employees()
+
 app = FastAPI(title="RegAgent API", description="Agentic Regulatory Intelligence API")
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+CIRCULARS_DIR = os.path.join(BASE_DIR, "..", "circulars", "incoming")
+os.makedirs(CIRCULARS_DIR, exist_ok=True)
+app.mount("/files", StaticFiles(directory=CIRCULARS_DIR), name="files")
 
 # Add CORS so React frontend can connect
 app.add_middleware(
@@ -38,6 +61,70 @@ def health_check():
     return {"status": "ok", "message": "RegAgent Backend is running"}
 
 # ═══════════════════════════════════════════════════════════════
+#  TEAM / EMPLOYEE MANAGEMENT
+# ═══════════════════════════════════════════════════════════════
+
+class EmployeeCreate(BaseModel):
+    name: str
+    department: str
+    level: str
+    email: str
+
+class EmployeeResponse(EmployeeCreate):
+    id: int
+    class Config:
+        orm_mode = True
+
+@app.post("/employees", response_model=EmployeeResponse)
+def create_employee(emp: EmployeeCreate, db: Session = Depends(get_db)):
+    db_emp = models.Employee(**emp.dict())
+    db.add(db_emp)
+    db.commit()
+    db.refresh(db_emp)
+    return db_emp
+
+@app.get("/employees", response_model=list[EmployeeResponse])
+def get_employees(department: str = None, db: Session = Depends(get_db)):
+    query = db.query(models.Employee)
+    if department:
+        query = query.filter(models.Employee.department == department)
+    return query.all()
+
+class AssignMapRequest(BaseModel):
+    assignee_id: int | None = None
+    custom_role: str | None = None
+
+@app.put("/maps/{map_id}/assign")
+def assign_map(map_id: int, req: AssignMapRequest, db: Session = Depends(get_db)):
+    map_item = db.query(models.MapItem).filter(models.MapItem.id == map_id).first()
+    if not map_item:
+        raise HTTPException(status_code=404, detail="Map not found")
+    
+    if req.assignee_id:
+        emp = db.query(models.Employee).filter(models.Employee.id == req.assignee_id).first()
+        if not emp:
+            raise HTTPException(status_code=404, detail="Employee not found")
+        map_item.assignee_id = emp.id
+        map_item.assignee_role = f"{emp.name} ({emp.level})"
+    elif req.custom_role:
+        map_item.assignee_id = None
+        map_item.assignee_role = req.custom_role
+    else:
+        raise HTTPException(status_code=400, detail="Must provide assignee_id or custom_role")
+    
+    # Audit log the assignment
+    audit = models.AuditLog(
+        map_id=map_id,
+        action="Map Assigned",
+        result="Success",
+        reasoning=f"Task manually assigned to {map_item.assignee_role}"
+    )
+    db.add(audit)
+    db.commit()
+    db.refresh(map_item)
+    return {"status": "success", "assignee_id": map_item.assignee_id, "assignee_role": map_item.assignee_role}
+
+# ═══════════════════════════════════════════════════════════════
 #  CIRCULAR UPLOAD & PROCESSING (with Gap Analysis integration)
 # ═══════════════════════════════════════════════════════════════
 
@@ -49,10 +136,17 @@ async def upload_circular(file: UploadFile = File(...), db: Session = Depends(ge
     with open(file_location, "wb+") as file_object:
         shutil.copyfileobj(file.file, file_object)
         
-    new_circular = models.Circular(filename=file.filename, status="Uploaded")
-    db.add(new_circular)
-    db.commit()
-    db.refresh(new_circular)
+    existing_circular = db.query(models.Circular).filter(models.Circular.filename == file.filename).first()
+    if existing_circular:
+        new_circular = existing_circular
+        new_circular.status = "Uploaded"
+        db.commit()
+        db.refresh(new_circular)
+    else:
+        new_circular = models.Circular(filename=file.filename, status="Uploaded")
+        db.add(new_circular)
+        db.commit()
+        db.refresh(new_circular)
     
     return {"status": "success", "circular_id": new_circular.id, "filename": file.filename, "filepath": file_location}
 
@@ -90,6 +184,7 @@ def process_circular(request: ProcessRequest, db: Session = Depends(get_db)):
     
     # Save parsed results
     circular.extracted_text = final_state.get("extracted_text")
+    circular.summary = final_state.get("summary")
     circular.priority = final_state.get("priority", "Medium")
     circular.penalty_risk = final_state.get("penalty_risk", "None")
     circular.status = "Parsed"
@@ -149,7 +244,10 @@ def process_circular(request: ProcessRequest, db: Session = Depends(get_db)):
             estimated_effort_hours=str(m.get("estimated_effort_hours", "TBD")),
             risk_category=m.get("risk_category", "Operational"),
             regulatory_fine_potential=m.get("regulatory_fine_potential", "Unknown"),
-            budget_required=str(m.get("budget_required", "No"))
+            budget_required=str(m.get("budget_required", "No")),
+            gap_status=gap_status,
+            matched_document=matched_doc,
+            gap_detail=gap_detail
         )
         db.add(new_map)
         db.commit()
@@ -363,6 +461,105 @@ def get_all_maps(db: Session = Depends(get_db)):
     maps = db.query(models.MapItem).all()
     return maps
 
+@app.get("/audit-logs")
+def get_audit_logs(db: Session = Depends(get_db)):
+    """Returns all Audit Logs."""
+    logs = db.query(models.AuditLog).order_by(models.AuditLog.timestamp.desc()).all()
+    result = []
+    for log in logs:
+        # fetch the related map item to show title
+        map_item = db.query(models.MapItem).filter(models.MapItem.id == log.map_id).first()
+        result.append({
+            "id": log.id,
+            "map_id": log.map_id,
+            "map_title": map_item.title if map_item else f"MAP #{log.map_id}",
+            "action": log.action,
+            "result": log.result,
+            "reasoning": log.reasoning,
+            "timestamp": str(log.timestamp)
+        })
+    return result
+
+COST_RATE_PER_HOUR = 2500  # ₹2,500/hr default
+
+@app.get("/tasks")
+def get_all_tasks(db: Session = Depends(get_db)):
+    """Returns all MAPs across all circulars with enriched data for the Task Board."""
+    maps = db.query(models.MapItem).all()
+    result = []
+    for m in maps:
+        circular = db.query(models.Circular).filter(models.Circular.id == m.circular_id).first()
+        # Calculate cost estimate
+        try:
+            effort = float(m.estimated_effort_hours) if m.estimated_effort_hours and m.estimated_effort_hours not in ['TBD', '?', ''] else 0
+        except (ValueError, TypeError):
+            effort = 0
+        cost = effort * COST_RATE_PER_HOUR
+        
+        # Deadline countdown
+        days_left = None
+        if m.deadline and m.deadline not in ['None', 'Unknown', '']:
+            try:
+                dl = datetime.datetime.strptime(m.deadline, '%Y-%m-%d')
+                days_left = (dl - datetime.datetime.utcnow()).days
+            except:
+                pass
+        
+        result.append({
+            "id": m.id,
+            "title": m.title,
+            "kpi": m.kpi,
+            "deadline": m.deadline,
+            "days_left": days_left,
+            "department": m.department,
+            "evidence_required": m.evidence_required,
+            "status": m.status,
+            "priority": m.priority,
+            "assignee_role": m.assignee_role,
+            "estimated_effort_hours": m.estimated_effort_hours,
+            "risk_category": m.risk_category,
+            "regulatory_fine_potential": m.regulatory_fine_potential,
+            "budget_required": m.budget_required,
+            "cost_estimate": cost,
+            "circular_filename": circular.filename if circular else "Unknown",
+            "circular_id": m.circular_id,
+            "gap_status": m.gap_status or ("ALREADY_COMPLIANT" if m.status == "Already_Compliant" else "NEW_REQUIREMENT"),
+            "matched_document": m.matched_document or "None",
+            "gap_detail": m.gap_detail or ""
+        })
+    return result
+
+class ExtendRequest(BaseModel):
+    new_deadline: str
+    reason: str
+
+@app.post("/tasks/{map_id}/extend")
+def request_extension(map_id: int, request: ExtendRequest, db: Session = Depends(get_db)):
+    """Request a deadline extension for a MAP task."""
+    map_item = db.query(models.MapItem).filter(models.MapItem.id == map_id).first()
+    if not map_item:
+        raise HTTPException(status_code=404, detail="MAP not found")
+    
+    old_deadline = map_item.deadline
+    map_item.deadline = request.new_deadline
+    
+    log = models.AuditLog(
+        map_id=map_item.id,
+        action="Deadline Extension",
+        result="extended",
+        reasoning=f"Extended from {old_deadline} to {request.new_deadline}. Reason: {request.reason}"
+    )
+    db.add(log)
+    db.commit()
+    
+    return {
+        "status": "success",
+        "message": f"Deadline extended to {request.new_deadline}",
+        "old_deadline": old_deadline,
+        "new_deadline": request.new_deadline
+    }
+
+
 class ValidateRequest(BaseModel):
     map_id: int
     evidence_text: str
@@ -466,6 +663,13 @@ def get_circular_details(circular_id: int, db: Session = Depends(get_db)):
     
     generated_maps = []
     for m in maps:
+        # Calculate cost
+        try:
+            effort = float(m.estimated_effort_hours) if m.estimated_effort_hours and m.estimated_effort_hours not in ['TBD', '?', ''] else 0
+        except (ValueError, TypeError):
+            effort = 0
+        cost = effort * COST_RATE_PER_HOUR
+        
         generated_maps.append({
             "id": m.id,
             "title": m.title,
@@ -479,7 +683,11 @@ def get_circular_details(circular_id: int, db: Session = Depends(get_db)):
             "estimated_effort_hours": m.estimated_effort_hours,
             "risk_category": m.risk_category,
             "regulatory_fine_potential": m.regulatory_fine_potential,
-            "budget_required": m.budget_required
+            "budget_required": m.budget_required,
+            "cost_estimate": cost,
+            "gap_status": m.gap_status or ("ALREADY_COMPLIANT" if m.status == "Already_Compliant" else "NEW_REQUIREMENT"),
+            "matched_document": m.matched_document or "None",
+            "gap_detail": m.gap_detail or ""
         })
         
     return {
@@ -487,7 +695,8 @@ def get_circular_details(circular_id: int, db: Session = Depends(get_db)):
         "circular_id": circular.id,
         "filename": circular.filename,
         "regulation": circular.filename,
-        "summary": circular.extracted_text[:500] + "..." if circular.extracted_text else "No summary available.",
+        "summary": circular.summary if circular.summary else (circular.extracted_text[:500] + "..." if circular.extracted_text else "No summary available."),
+        "extracted_text": circular.extracted_text or "",
         "priority": circular.priority,
         "penalty_risk": circular.penalty_risk,
         "generated_maps": generated_maps

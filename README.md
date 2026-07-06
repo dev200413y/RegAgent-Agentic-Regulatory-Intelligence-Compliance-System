@@ -89,24 +89,32 @@ This lets us demonstrate the full lifecycle with realistic regulatory language w
 
 ---
 
-## 7. Quick Start (local, offline)
+## 7. How to Run (Local Setup)
+
+Follow these steps to run the application locally (without Docker):
 
 ```bash
-# 1. Pull the local LLM once (requires internet only this one time)
+# 1. Start the local LLM (Ollama)
+# Ensure Ollama is installed on your system. Run this in a separate terminal:
+ollama serve
+# Then ensure you have the required model:
 ollama pull mistral:7b
 
-# 2. Start everything locally — Postgres, FastAPI, React, all in containers
-docker-compose up --build
+# 2. Start the Backend (FastAPI)
+# Open a new terminal and navigate to the backend folder
+cd backend
+pip install -r requirements.txt
+python -m uvicorn main:app --reload
 
-# 3. Confirm Ollama is serving locally
-ollama list
-
-# 4. Open the dashboard (running on Vite locally)
-http://localhost:5173
-
-# 5. Drop a circular into the watched folder, or upload via the dashboard
-cp sample-circulars/rbi_circular_01.pdf ./circulars/incoming/
+# 3. Start the Frontend (React + Vite)
+# Open a new terminal and navigate to the frontend folder
+cd frontend
+npm install
+npm run dev
 ```
+
+**4. Access the Dashboard**
+Open your browser and navigate to `http://localhost:5173`.
 
 To prove offline operation during a live demo: disconnect from the network entirely (`ping` should fail), then run the same steps — the system works unaffected because all inference happens locally via Ollama.
 
