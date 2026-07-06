@@ -44,7 +44,7 @@
                                         ▼
                          ┌─────────────────────────────┐
                          │      PERSISTENCE LAYER       │
-                         │   PostgreSQL — MAPs,         │
+                         │   SQLite — MAPs,             │
                          │   department mappings,       │
                          │   audit log (every state     │
                          │   transition timestamped)    │
@@ -67,7 +67,7 @@
                          │   audit trail viewer          │
                          └─────────────────────────────┘
 
-         All of the above runs inside Docker Compose on a single
+         All of the above runs via separate local processes on a single
          host machine — zero outbound network calls at runtime.
 ```
 
@@ -96,7 +96,7 @@ Department-routing rules and regulator-specific parsing hints live in external c
 
 ---
 
-## 3. Data Model (PostgreSQL — core tables)
+## 3. Data Model (SQLite — core tables)
 
 ```
 circulars
@@ -124,11 +124,11 @@ Every state transition — circular ingested, MAP created, MAP assigned, evidenc
 ## 4. Deployment Topology (prototype)
 
 ```
-docker-compose.yml
- ├── postgres        (local volume, no external exposure)
- ├── backend (FastAPI)
- ├── frontend (React, served via nginx or dev server)
- └── [Ollama runs as a separate local host process / container,
+regagent/
+ ├── database (SQLite regagent.db, no external exposure)
+ ├── backend (FastAPI, run via uvicorn)
+ ├── frontend (React, served via Vite dev server)
+ └── [Ollama runs as a separate local host process,
       backend connects via http://localhost:11434]
 ```
 

@@ -37,7 +37,7 @@ This document describes each agent in the LangGraph pipeline: its responsibility
 ```
 
 **Implementation notes:**
-- Calls the local Ollama LLM (`mistral:7b` or `phi3:mini`) with a carefully constructed prompt that asks specifically for these fields, instructing the model to return **JSON only**.
+- Calls the local Ollama LLM (`llama3.2`) with a carefully constructed prompt that asks specifically for these fields, instructing the model to return **JSON only**.
 - A lightweight JSON-repair/parsing step handles cases where the LLM adds stray text around the JSON.
 - This is the agent doing genuine natural-language interpretation — circular language varies a lot (legal phrasing, tables, varying section structures), so this can't be done with regex/keyword rules alone. This is the clearest demonstration of "agentic" behavior in the pipeline.
 - Long circulars are chunked and summarized before extraction if they exceed the model's comfortable context window, to keep local inference fast.

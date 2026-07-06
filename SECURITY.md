@@ -15,7 +15,7 @@ There is no external API call, no cloud LLM, no telemetry, and no third-party SD
 | Risk | How RegAgent Addresses It |
 |---|---|
 | Sensitive circular/evidence data leaking to a third-party LLM provider | All LLM inference (Ollama) runs locally; no network egress during inference |
-| Man-in-the-middle exposure of regulatory data in transit to cloud APIs | No such transit exists — everything is `localhost`/internal Docker network |
+| Man-in-the-middle exposure of regulatory data in transit to cloud APIs | No such transit exists — everything is `localhost` / internal local network |
 | Vendor lock-in / dependency on external API uptime or pricing changes | Self-hosted model, no external dependency at runtime |
 | Tampering with audit trail records | Every MAP/evidence/validation event is append-only logged with timestamps in `audit_log`; no update/delete path exposed via the API for historical entries |
 | Unauthorized access to the dashboard | (Prototype: single-user demo. Production note below covers RBAC.) |
@@ -25,10 +25,10 @@ There is no external API call, no cloud LLM, no telemetry, and no third-party SD
 
 ## 3. Data Flow & Storage
 
-- **Circulars**: stored as files on local disk (`/circulars/`) + extracted text stored in PostgreSQL. No copy of this data is sent anywhere else.
+- **Circulars**: stored as files on local disk (`/circulars/`) + extracted text stored in SQLite. No copy of this data is sent anywhere else.
 - **Evidence documents**: same pattern — local disk + DB reference, never transmitted externally.
-- **LLM prompts/responses**: constructed and consumed entirely within the host process calling `localhost:11434` (Ollama's local API port). This is not a public-facing port and is not exposed outside the Docker network in the deployment config.
-- **Database**: PostgreSQL runs as a local Docker container with no external port mapping exposed beyond what's needed for the backend to connect internally.
+- **LLM prompts/responses**: constructed and consumed entirely within the host process calling `localhost:11434` (Ollama's local API port). This is not a public-facing port and is not exposed outside the local host environment.
+- **Database**: SQLite runs as a local file with no external port mapping exposed.
 
 ---
 
@@ -39,7 +39,7 @@ Because this is an evaluation condition, not just a design claim, we built the d
 1. Disconnect the host machine from WiFi/Ethernet entirely.
 2. Run `ping 8.8.8.8` (or similar) on camera — show it failing.
 3. Run the full circular → MAP → evidence → validation cycle with the network still disconnected.
-4. Optionally, show the Docker network configuration / `docker-compose.yml` to confirm no service has external network access configured.
+4. Optionally, show the local network configuration and the FastAPI backend code to confirm no service has external network access configured.
 
 This is the single most convincing thing we can show a judge — not a slide claiming "offline capable," but a live, disconnected machine doing real work.
 
@@ -79,6 +79,6 @@ Every action in the system — ingestion, MAP creation, assignment, evidence sub
 We'd rather state these directly than have a judge find them unprompted:
 
 - No multi-user authentication in this build (see §5).
-- No encryption-at-rest configured for the local PostgreSQL volume in the prototype (straightforward to add via standard Postgres/Docker volume encryption for production).
-- Local LLM (`mistral:7b` / `phi3:mini`) is smaller and less capable than a frontier cloud model — extraction accuracy on unusually complex circular language may need human spot-checking in early production rollout, with confidence-based escalation (see `AGENTS.md` §Validator Agent) as the mitigation built into the design.
+- No encryption-at-rest configured for the local SQLite database file in the prototype (straightforward to add via standard SQLite encryption / SQLCipher for production).
+- Local LLM (`llama3.2`) is smaller and less capable than a frontier cloud model — extraction accuracy on unusually complex circular language may need human spot-checking in early production rollout, with confidence-based escalation (see `AGENTS.md` §Validator Agent) as the mitigation built into the design.
 - Single-host deployment in the demo is intentionally simple; a real bank rollout would need a proper internal network deployment plan (see `ARCHITECTURE.md` §5).

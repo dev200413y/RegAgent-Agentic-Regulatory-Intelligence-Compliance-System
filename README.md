@@ -54,14 +54,13 @@ Every component below — LLM inference, embeddings, OCR, storage — runs **ent
 | Layer | Technology | Purpose |
 |---|---|---|
 | Multi-agent orchestration | **LangGraph** | Defines and runs the agent pipeline as a stateful graph |
-| LLM inference | **Ollama** (`mistral:7b` / `phi3:mini`, run locally) | Parses circulars, validates evidence — zero cloud calls |
+| LLM inference | **Ollama** (`llama3.2`, run locally) | Parses circulars, validates evidence — zero cloud calls |
 | Embeddings / semantic search | **sentence-transformers** (local model) + **FAISS** | Optional RAG over historical circulars, fully offline |
 | Document ingestion | **PyMuPDF (fitz)**, **pdf2image**, **Tesseract OCR** | Extracts text from clean PDFs and scanned/image circulars |
 | Backend API | **FastAPI** | REST endpoints for upload, MAPs, evidence, dashboard data |
-| Database | **PostgreSQL** (local Docker container) | Stores MAPs, department mappings, audit logs |
-| Frontend | **React** | Compliance dashboard — MAP status, department progress, audit trail |
+| Database | **SQLite** (local file) | Stores MAPs, department mappings, employees, audit logs |
+| Frontend | **React** + **Vite** | Compliance dashboard — MAP status, department progress, audit trail |
 | File watching | **watchdog** (Python) | Detects new circulars dropped into a monitored folder |
-| Deployment | **Docker Compose** | One-command local spin-up — no cloud infra required for the prototype |
 | CI/CD (future/production) | **GitHub Actions** | Automated build/test pipeline for a production rollout |
 
 ---
@@ -98,7 +97,7 @@ Follow these steps to run the application locally (without Docker):
 # Ensure Ollama is installed on your system. Run this in a separate terminal:
 ollama serve
 # Then ensure you have the required model:
-ollama pull mistral:7b
+ollama pull llama3.2
 
 # 2. Start the Backend (FastAPI)
 # Open a new terminal and navigate to the backend folder
