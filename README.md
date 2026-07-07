@@ -102,6 +102,9 @@ ollama pull llama3.2
 # 2. Start the Backend (FastAPI)
 # Open a new terminal and navigate to the backend folder
 cd backend
+# (Recommended) Create and activate a virtual environment
+python -m venv venv
+# Windows: venv\Scripts\activate | Mac/Linux: source venv/bin/activate
 pip install -r requirements.txt
 python -m uvicorn main:app --reload
 
@@ -119,7 +122,17 @@ To prove offline operation during a live demo: disconnect from the network entir
 
 ---
 
-## 8. What Makes This "Truly Agentic" (not just a rule-based pipeline)
+## 8. Troubleshooting
+
+**Error: `[WinError 126] The specified module could not be found. (shm.dll)`**
+If you encounter this error while starting the backend on Windows, it indicates that PyTorch is missing the required Microsoft C++ libraries or conflicting with a global installation.
+**Fix:** 
+1. Download and install the [Microsoft Visual C++ Redistributable (x64)](https://aka.ms/vs/17/release/vc_redist.x64.exe).
+2. Ensure you are running the backend inside a fresh Virtual Environment (`venv`) as shown in the setup steps to avoid conflicts with broken global packages.
+
+---
+
+## 9. What Makes This "Truly Agentic" (not just a rule-based pipeline)
 
 - Agents **interpret unstructured regulatory language** (not keyword matching) to extract obligations
 - The **Validator Agent makes an autonomous pass/fail judgment** with reasoning, rather than requiring a human reviewer for routine cases
@@ -130,7 +143,7 @@ See `AGENTS.md` for a detailed breakdown of each agent's responsibilities and de
 
 ---
 
-## 9. Impact
+## 10. Impact
 
 - Cuts regulatory review time from **3–7 days to under 5 minutes** per circular
 - Removes the risk of **missed deadlines** that lead to ₹1 Crore+ penalties
@@ -141,7 +154,7 @@ See `AGENTS.md` for a detailed breakdown of each agent's responsibilities and de
 
 ---
 
-## 10. Project Structure
+## 11. Project Structure
 
 ```
 regagent/
